@@ -8,7 +8,7 @@ app = Flask(__name__)
 # Cerebras Configuration (بدون مكتبات خارجية)
 # =========================
 
-API_KEY = "csk-9434vttjv43pfnhn8vdcetfwmmchcp8v4er9cye36xtdcv3v"
+API_KEY = "csk-v5hkyvperr29p2kcfv3fktwxmxnwxth6rjwtr4mhrmv93hv3"
 CEREBRAS_URL = "https://api.cerebras.ai/v1/chat/completions"
 MODEL = "llama3.1-8b"
 
