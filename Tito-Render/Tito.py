@@ -8,8 +8,8 @@ app = Flask(__name__)
 # =========================
 
 # مفتاح Groq API والنموذج المعتمد والسريع
-client = Groq(api_key="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")
-MODEL = "llama-3.3-70b-versatile"
+client = Groq(api_key="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")
+MODEL = "llama-3.1-8b-instant"
 
 # =========================
 # واجهة Tito AI
