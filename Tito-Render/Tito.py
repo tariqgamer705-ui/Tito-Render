@@ -7,9 +7,22 @@ app = Flask(__name__)
 # Groq Client & Model Configuration
 # =========================
 
-# مفتاح Groq API والنموذج المعتمد والسريع
-client = Groq(api_key="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")
+# مفتاح Groq API الجديد والنموذج المعتمد
+API_KEY = "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"
+client = Groq(api_key=API_KEY)
 MODEL = "llama-3.1-8b-instant"
+
+# =========================
+# طباعة النماذج المتاحة في الـ Console للتحقق
+# =========================
+try:
+    print("--- النماذج المتاحة لحسابك في Groq ---")
+    models_response = client.models.list()
+    for m in models_response.data:
+        print(f"Model ID: {m.id}")
+    print("---------------------------------------")
+except Exception as e:
+    print(f"تعذر جلب قائمة النماذج: {e}")
 
 # =========================
 # واجهة Tito AI
@@ -942,7 +955,6 @@ def chat_message():
         if not message:
             return jsonify({"reply": "❌ اكتب رسالة أولًا"})
 
-        # تجهيز الرسائل والسياق لـ Groq
         messages = [
             {"role": "system", "content": "أنت Tito AI، مساعد ذكاء اصطناعي عربي ودود ومفيد جداً."}
         ]
@@ -957,7 +969,6 @@ def chat_message():
 
         messages.append({"role": "user", "content": message})
 
-        # إرسال الطلب عبر عميل Groq بالنموذج الصحيح
         chat_completion = client.chat.completions.create(
             model=MODEL,
             messages=messages,
