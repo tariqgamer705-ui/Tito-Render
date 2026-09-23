@@ -7,10 +7,10 @@ app = Flask(__name__)
 # Groq Client & Model Configuration
 # =========================
 
-# مفتاح Groq API الجديد والنموذج المعتمد
 API_KEY = "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"
 client = Groq(api_key=API_KEY)
-MODEL = "llama-3.1-8b-instant"
+# تم تحديث النموذج ليطابق النماذج المتاحة في حسابك
+MODEL = "allam-2-7b"
 
 # =========================
 # طباعة النماذج المتاحة في الـ Console للتحقق
