@@ -7,9 +7,9 @@ app = Flask(__name__)
 # Groq Client & Model Configuration
 # =========================
 
-# ضع مفتاح Groq الخاص بك هنا (أو مفتاح الـ API الصحيح من منصة Groq)
+# مفتاح Groq API والنموذج المعتمد والسريع
 client = Groq(api_key="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")
-MODEL = "llama-3.3-70b-versatile" # نموذج سريع وممتاز للدردشة على Groq
+MODEL = "llama-3.1-8b-instant"
 
 # =========================
 # واجهة Tito AI
@@ -957,7 +957,7 @@ def chat_message():
 
         messages.append({"role": "user", "content": message})
 
-        # إرسال الطلب عبر عميل Groq
+        # إرسال الطلب عبر عميل Groq بالنموذج الصحيح
         chat_completion = client.chat.completions.create(
             model=MODEL,
             messages=messages,
