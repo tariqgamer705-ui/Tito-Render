@@ -1,22 +1,40 @@
 from flask import Flask, request, jsonify, render_template_string
-from openai import OpenAI
+import urllib.request
+import json
 
 app = Flask(__name__)
 
 # =========================
-# Cerebras Client & Configuration
+# Cerebras Configuration (بدون مكتبات خارجية)
 # =========================
 
 API_KEY = "csk-9434vttjv43pfnhn8vdcetfwmmchcp8v4er9cye36xtdcv3v"
-
-# إعداد العميل لربطه بمنصة Cerebras السريعة جداً
-client = OpenAI(
-    api_key=API_KEY,
-    base_url="https://api.cerebras.ai/v1"
-)
-
-# استخدام نموذج قوية ومتاحة في Cerebras (مثل Llama 3.1)
+CEREBRAS_URL = "https://api.cerebras.ai/v1/chat/completions"
 MODEL = "llama3.1-8b"
+
+def call_cerebras(messages):
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {API_KEY}"
+    }
+    data = {
+        "model": MODEL,
+        "messages": messages
+    }
+    
+    req = urllib.request.Request(
+        CEREBRAS_URL,
+        data=json.dumps(data).encode('utf-8'),
+        headers=headers,
+        method='POST'
+    )
+    
+    try:
+        with urllib.request.urlopen(req) as response:
+            res_data = json.loads(response.read().decode('utf-8'))
+            return res_data['choices'][0]['message']['content']
+    except Exception as e:
+        return f"❌ خطأ من Cerebras: {str(e)}"
 
 # =========================
 # واجهة Tito AI
@@ -383,8 +401,8 @@ def chat_message():
                 messages.append({"role": "user" if item.get("type") == "user" else "assistant", "content": item.get("text")})
         messages.append({"role": "user", "content": message})
 
-        completion = client.chat.completions.create(model=MODEL, messages=messages)
-        return jsonify({"reply": completion.choices[0].message.content})
+        reply_text = call_cerebras(messages)
+        return jsonify({"reply": reply_text})
     except Exception as e:
         return jsonify({"reply": f"❌ خطأ: {str(e)}"})
 
