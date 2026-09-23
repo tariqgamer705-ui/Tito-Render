@@ -9,20 +9,9 @@ app = Flask(__name__)
 
 API_KEY = "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"
 client = Groq(api_key=API_KEY)
-# تم تحديث النموذج ليطابق النماذج المتاحة في حسابك
-MODEL = "allam-2-7b"
 
-# =========================
-# طباعة النماذج المتاحة في الـ Console للتحقق
-# =========================
-try:
-    print("--- النماذج المتاحة لحسابك في Groq ---")
-    models_response = client.models.list()
-    for m in models_response.data:
-        print(f"Model ID: {m.id}")
-    print("---------------------------------------")
-except Exception as e:
-    print(f"تعذر جلب قائمة النماذج: {e}")
+# استخدام نموذج مدعوم ومستقر حالياً في Groq
+MODEL = "openai/gpt-oss-20b"
 
 # =========================
 # واجهة Tito AI
