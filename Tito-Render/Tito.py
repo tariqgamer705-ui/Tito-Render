@@ -10,8 +10,8 @@ app = Flask(__name__)
 API_KEY = "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"
 client = Groq(api_key=API_KEY)
 
-# استخدام نموذج مدعوم ومستقر حالياً في Groq
-MODEL = "openai/gpt-oss-20b"
+# استخدام النموذج المعتمد والمتاح عادة في Groq
+MODEL = "llama-3.3-70b-versatile"
 
 # =========================
 # واجهة Tito AI
