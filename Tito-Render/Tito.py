@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 # ضع مفتاح Groq الخاص بك هنا (أو مفتاح الـ API الصحيح من منصة Groq)
 client = Groq(api_key="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")
-MODEL = "model="llama-3.1-8b-instant" # نموذج سريع وممتاز للدردشة على Groq
+MODEL = "llama-3.1-8b-instant" # نموذج سريع وممتاز للدردشة على Groq
 
 # =========================
 # واجهة Tito AI
