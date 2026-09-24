@@ -8,7 +8,7 @@ app = Flask(__name__)
 # OpenRouter Configuration
 # =========================
 
-API_KEY = "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"
+API_KEY = "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"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODEL = "meta-llama/llama-3-8b-instruct:free"
 
