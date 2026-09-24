@@ -5,27 +5,25 @@ import json
 app = Flask(__name__)
 
 # =========================
-# OpenRouter Configuration
+# Google Gemini Configuration
 # =========================
+API_KEY = "AQ.Ab8RN6IQJSAshu12vtf3PQFBUzeISdvEUUZNlqD6sjsq9zEhIw"
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
-API_KEY = "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"
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL = "meta-llama/llama-3-8b-instruct:free"
-
-def call_openrouter(messages):
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {API_KEY}",
-        "HTTP-Referer": "https://tito-render.onrender.com",
-        "X-Title": "Tito AI"
-    }
-    data = {
-        "model": MODEL,
-        "messages": messages
-    }
+def call_gemini(messages):
+    contents = []
+    for msg in messages:
+        role = "user" if msg["role"] == "user" else "model"
+        contents.append({
+            "role": role,
+            "parts": [{"text": msg["content"]}]
+        })
+    
+    headers = {"Content-Type": "application/json"}
+    data = {"contents": contents}
     
     req = urllib.request.Request(
-        OPENROUTER_URL,
+        GEMINI_URL,
         data=json.dumps(data).encode('utf-8'),
         headers=headers,
         method='POST'
@@ -34,9 +32,9 @@ def call_openrouter(messages):
     try:
         with urllib.request.urlopen(req) as response:
             res_data = json.loads(response.read().decode('utf-8'))
-            return res_data['choices'][0]['message']['content']
+            return res_data['candidates'][0]['content']['parts'][0]['text']
     except Exception as e:
-        return f"❌ خطأ من OpenRouter: {str(e)}"
+        return f"❌ خطأ من Gemini: {str(e)}"
 
 # =========================
 # واجهة Tito AI
@@ -54,13 +52,14 @@ HTML = r"""
 <style>
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Arial, sans-serif; background: #101010; color: white; overflow: hidden; }
-.sidebar { position: fixed; right: 0; top: 0; width: 280px; height: 100vh; background: #181818; border-left: 1px solid #303030; padding: 18px; transition: transform 0.25s ease; z-index: 100; }
+.sidebar { position: fixed; right: 0; top: 0; width: 280px; height: 100vh; background: #181818; border-left: 1px solid #303030; padding: 18px; transition: transform 0.25s ease; z-index: 100; display: flex; flex-direction: column; }
 .sidebar.hidden { transform: translateX(100%); }
 .logo { font-size: 24px; font-weight: bold; margin-bottom: 25px; }
 .new-chat { width: 100%; padding: 13px; border: none; border-radius: 12px; background: #303030; color: white; cursor: pointer; font-size: 15px; margin-bottom: 20px; }
 .new-chat:hover { background: #3a3a3a; }
 .history-title { color: #999; font-size: 13px; margin-bottom: 10px; }
-.history { overflow-y: auto; height: calc(100vh - 160px); }
+.history { overflow-y: auto; flex: 1; }
+.copyright-footer { font-size: 11px; color: #777; text-align: center; padding-top: 15px; border-top: 1px solid #282828; margin-top: 10px; line-height: 1.5; }
 .topic { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; cursor: pointer; margin-bottom: 5px; transition: background 0.2s; }
 .topic:hover { background: #292929; }
 .topic.active { background: #303030; }
@@ -119,10 +118,17 @@ textarea { flex: 1; resize: none; border: none; outline: none; background: trans
 <body>
 <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
 <div id="sidebar" class="sidebar hidden">
-    <div class="logo">🤖 Tito AI</div>
-    <button class="new-chat" onclick="newChat()">＋ محادثة جديدة</button>
-    <div class="history-title">المواضيع السابقة</div>
+    <div>
+        <div class="logo">🤖 Tito AI</div>
+        <button class="new-chat" onclick="newChat()">＋ محادثة جديدة</button>
+        <div class="history-title">المواضيع السابقة</div>
+    </div>
     <div id="history" class="history"></div>
+    <div class="copyright-footer">
+        © 2026 Tito AI<br>
+        جميع الحقوق محفوظة<br>
+        <b>طارق عبدالله الوائلي</b>
+    </div>
 </div>
 
 <div id="main" class="main full">
@@ -304,7 +310,7 @@ function handleFileSelected(e) {
     const reader = new FileReader();
     reader.onload = function(event) {
         currentAttachment = { data: event.target.result.split(',')[1], mimeType: file.type, url: URL.createObjectURL(file), type: file.type.startsWith("image/") ? "image" : "video" };
-        document.getElementById("previewContainer").innerHTML = currentAttachment.type === "image" ? `<img src="${currentAttachment.url}">` : `<video src="${currentAttachment.url}" muted></video>`;
+        document.getElementById("previewContainer").innerHTML = currentAttachment.type === "image" ? `<img src="${currentAttachment.url}">` : `<video src="${currentAssetUrl = currentAttachment.url}" muted></video>`;
         document.getElementById("fileName").textContent = file.name;
         document.getElementById("attachmentPreview").style.display = "flex";
         handleInput();
@@ -397,13 +403,18 @@ def chat_message():
         message = data.get("message", "").strip()
         history = data.get("history", [])
 
-        messages = [{"role": "system", "content": "أنت Tito AI، مساعد ذكاء اصطناعي عربي ودود ومفيد جداً."}]
-        for item in history[:-1]:
+        formatted_messages = []
+        for item in history:
             if item.get("text"):
-                messages.append({"role": "user" if item.get("type") == "user" else "assistant", "content": item.get("text")})
-        messages.append({"role": "user", "content": message})
+                formatted_messages.append({
+                    "role": "user" if item.get("type") == "user" else "model",
+                    "content": item.get("text")
+                })
+        
+        if not formatted_messages or formatted_messages[-1]["content"] != message:
+            formatted_messages.append({"role": "user", "content": message})
 
-        reply_text = call_openrouter(messages)
+        reply_text = call_gemini(formatted_messages)
         return jsonify({"reply": reply_text})
     except Exception as e:
         return jsonify({"reply": f"❌ خطأ: {str(e)}"})
