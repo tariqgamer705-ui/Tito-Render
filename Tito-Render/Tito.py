@@ -5,17 +5,19 @@ import json
 app = Flask(__name__)
 
 # =========================
-# Cerebras Configuration (بدون مكتبات خارجية)
+# OpenRouter Configuration
 # =========================
 
-API_KEY = "csk-v5hkyvperr29p2kcfv3fktwxmxnwxth6rjwtr4mhrmv93hv3"
-CEREBRAS_URL = "https://api.cerebras.ai/v1/chat/completions"
-MODEL = "llama3.1-8b"
+API_KEY = "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"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+MODEL = "meta-llama/llama-3-8b-instruct:free"
 
-def call_cerebras(messages):
+def call_openrouter(messages):
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {API_KEY}"
+        "Authorization": f"Bearer {API_KEY}",
+        "HTTP-Referer": "https://tito-render.onrender.com",
+        "X-Title": "Tito AI"
     }
     data = {
         "model": MODEL,
@@ -23,7 +25,7 @@ def call_cerebras(messages):
     }
     
     req = urllib.request.Request(
-        CEREBRAS_URL,
+        OPENROUTER_URL,
         data=json.dumps(data).encode('utf-8'),
         headers=headers,
         method='POST'
@@ -34,7 +36,7 @@ def call_cerebras(messages):
             res_data = json.loads(response.read().decode('utf-8'))
             return res_data['choices'][0]['message']['content']
     except Exception as e:
-        return f"❌ خطأ من Cerebras: {str(e)}"
+        return f"❌ خطأ من OpenRouter: {str(e)}"
 
 # =========================
 # واجهة Tito AI
@@ -401,7 +403,7 @@ def chat_message():
                 messages.append({"role": "user" if item.get("type") == "user" else "assistant", "content": item.get("text")})
         messages.append({"role": "user", "content": message})
 
-        reply_text = call_cerebras(messages)
+        reply_text = call_openrouter(messages)
         return jsonify({"reply": reply_text})
     except Exception as e:
         return jsonify({"reply": f"❌ خطأ: {str(e)}"})
