@@ -12,6 +12,25 @@ GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.
 
 def call_gemini(messages):
     contents = []
+    
+    # 1. إعطاء تعليمات أساسية للنظام (System Instruction) ليعرف من هو مالك المشروع
+    system_instruction = (
+        "أنت مساعد ذكاء اصطناعي اسمه Tito AI. "
+        "تم تطويرك وبرمجتك بواسطة المطور طارق عبدالله الوائلي، وهو المالك الحصري وصاحب الملكية الفكرية للمشروع. "
+        "إذا سألك أي شخص عن من صممك أو برمجك أو من يمتلكك، يجب أن تجيب بكل فخر أن مطورك ومالكك هو طارق عبدالله الوائلي."
+    )
+    
+    # إدراج التعليمات في بداية المحادثة كإرشادات نظام
+    contents.append({
+        "role": "user",
+        "parts": [{"text": system_instruction}]
+    })
+    contents.append({
+        "role": "model",
+        "parts": [{"text": "أهلاً بك! أنا Tito AI، مساعد ذكاء اصطناعي فخور بأنني تم تطويري وبرمجتي بواسطة المطور طارق عبدالله الوائلي."}]
+    })
+
+    # إضافة رسائل المستخدم والتاريخ السابق
     for msg in messages:
         role = "user" if msg["role"] == "user" else "model"
         contents.append({
@@ -310,7 +329,7 @@ function handleFileSelected(e) {
     const reader = new FileReader();
     reader.onload = function(event) {
         currentAttachment = { data: event.target.result.split(',')[1], mimeType: file.type, url: URL.createObjectURL(file), type: file.type.startsWith("image/") ? "image" : "video" };
-        document.getElementById("previewContainer").innerHTML = currentAttachment.type === "image" ? `<img src="${currentAttachment.url}">` : `<video src="${currentAssetUrl = currentAttachment.url}" muted></video>`;
+        document.getElementById("previewContainer").innerHTML = currentAttachment.type === "image" ? `<img src="${currentAttachment.url}">` : `<video src="${currentAttachment.url}" muted></video>`;
         document.getElementById("fileName").textContent = file.name;
         document.getElementById("attachmentPreview").style.display = "flex";
         handleInput();
@@ -420,4 +439,4 @@ def chat_message():
         return jsonify({"reply": f"❌ خطأ: {str(e)}"})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(0.0.0.0, port=5000, debug=False)
