@@ -7,7 +7,7 @@ app = Flask(__name__)
 # =========================
 # Google Gemini Configuration
 # =========================
-API_KEY = "AQ.Ab8RN6IQJSAshu12vtf3PQFBUzeISdvEUUZNlqD6sjsq9zEhIw"
+API_KEY = "AQ.Ab8RN6L-fNW_4imyzYHoiRBhKxJZiuUJ11v2pQJyfzxntay0dQ"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
 def call_gemini(messages):
