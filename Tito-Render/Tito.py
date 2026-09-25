@@ -8,7 +8,7 @@ app = Flask(__name__)
 # Google Gemini Configuration
 # =========================
 API_KEY = "AQ.Ab8RN6Kva12-jTTN_WYH_2BdYRBk-hVP3aQxltIROZ7xaRzUpA"
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={API_KEY}"
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent""
 
 def call_gemini(messages):
     contents = []
@@ -36,7 +36,10 @@ def call_gemini(messages):
             "parts": [{"text": msg["content"]}]
         })
     
-    headers = {"Content-Type": "application/json"}
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": API_KEY
+    }
     data = {"contents": contents}
     
     req = urllib.request.Request(
