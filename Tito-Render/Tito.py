@@ -8,19 +8,18 @@ app = Flask(__name__)
 # Google Gemini Configuration
 # =========================
 API_KEY = "AQ.Ab8RN6L-fNW_4imyzYHoiRBhKxJZiuUJ11v2pQJyfzxntay0dQ"
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={API_KEY}"
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
 def call_gemini(messages):
     contents = []
     
-    # 1. إعطاء تعليمات أساسية للنظام (System Instruction) ليعرف من هو مالك المشروع
+    # 1. إعطاء تعليمات أساسية للنظام لتوثيق الملكية باسمك
     system_instruction = (
         "أنت مساعد ذكاء اصطناعي اسمه Tito AI. "
         "تم تطويرك وبرمجتك بواسطة المطور طارق عبدالله الوائلي، وهو المالك الحصري وصاحب الملكية الفكرية للمشروع. "
         "إذا سألك أي شخص عن من صممك أو برمجك أو من يمتلكك، يجب أن تجيب بكل فخر أن مطورك ومالكك هو طارق عبدالله الوائلي."
     )
     
-    # إدراج التعليمات في بداية المحادثة كإرشادات نظام
     contents.append({
         "role": "user",
         "parts": [{"text": system_instruction}]
@@ -30,7 +29,6 @@ def call_gemini(messages):
         "parts": [{"text": "أهلاً بك! أنا Tito AI، مساعد ذكاء اصطناعي فخور بأنني تم تطويري وبرمجتي بواسطة المطور طارق عبدالله الوائلي."}]
     })
 
-    # إضافة رسائل المستخدم والتاريخ السابق
     for msg in messages:
         role = "user" if msg["role"] == "user" else "model"
         contents.append({
