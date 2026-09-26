@@ -7,9 +7,10 @@ app = Flask(__name__)
 # =========================
 # Google Gemini Configuration
 # =========================
-API_KEY = "AQ.Ab8RN6Kva12-jTTN_WYH_2BdYRBk-hVP3aQxltIROZ7xaRzUpA"
-# تم تحديث الموديل إلى gemini-3.5-flash مع إرسال المفتاح في الرابط مباشرة
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={API_KEY}"
+# ضع المفتاح الجديد الذي ستستخرجه من Google AI Studio هنا حصرياً:
+API_KEY = "AQ.Ab8RN6IsNkMtEYOSywnwyTsV4nqsS10ABrgCRQt5vbDLzeYPgA"
+# استخدام موديل gemini-1.5-flash (الأكثر استقراراً واعتمادية للـ API)
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
 def call_gemini(messages):
     contents = []
