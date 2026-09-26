@@ -1,41 +1,60 @@
 from flask import Flask, request, jsonify, render_template_string
-from google import genai
-import os
+import urllib.request
+import json
 
 app = Flask(__name__)
 
 # =========================
 # Google Gemini Configuration
 # =========================
-API_KEY = "AQ.Ab8RN6Ih8epqPPHUzq6UV5IqRBd-jf2y8V5w_nvrMSRXDytA"
+# مفتاحك المباشر الذي يبدأ بـ AQ.
+API_KEY = "AQ.Ab8RN6Ih8epqPPHUqzv6rUV5IqRBd-jF2y8V5w_nvrMSrXDytA"
 
-# تهيئة العميل باستخدام مكتبة جوجل الرسمية الحديثة
-client = genai.Client(api_key=API_KEY)
+# الرابط الرسمي المدعوم مباشرة للمفاتيح الحديثة
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
 def call_gemini(messages):
     try:
+        contents = []
+        
+        # تعليمات النظام لتوثيق الملكية باسمك يا طارق
         system_instruction = (
             "أنت مساعد ذكاء اصطناعي اسمه Tito AI. "
             "تم تطويرك وبرمجتك بواسطة المطور طارق عبدالله الوائلي، وهو المالك الحصري وصاحب الملكية الفكرية للمشروع. "
             "إذا سألك أي شخص عن من صممك أو برمجك أو من يمتلكك، يجب أن تجيب بكل فخر أن مطورك ومالكك هو طارق عبدالله الوائلي."
         )
+        
+        contents.append({
+            "role": "user",
+            "parts": [{"text": system_instruction}]
+        })
+        contents.append({
+            "role": "model",
+            "parts": [{"text": "أهلاً بك! أنا Tito AI، مساعد ذكاء اصطناعي فخور بأنني تم تطويري وبرمجتي بواسطة المطور طارق عبدالله الوائلي."}]
+        })
 
-        contents = []
         for msg in messages:
             role = "user" if msg["role"] == "user" else "model"
             contents.append({
                 "role": role,
                 "parts": [{"text": msg["content"]}]
             })
-
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=contents,
-            config={
-                'system_instruction': system_instruction,
-            }
+        
+        headers = {
+            "Content-Type": "application/json"
+        }
+        data = {"contents": contents}
+        
+        req = urllib.request.Request(
+            GEMINI_URL,
+            data=json.dumps(data).encode('utf-8'),
+            headers=headers,
+            method='POST'
         )
-        return response.text
+        
+        with urllib.request.urlopen(req) as response:
+            res_data = json.loads(response.read().decode('utf-8'))
+            return res_data['candidates'][0]['content']['parts'][0]['text']
     except Exception as e:
         return f"❌ خطأ من Gemini: {str(e)}"
 
@@ -414,7 +433,7 @@ def chat_message():
                     "content": item.get("text")
                 })
         
-        if not formatted_messages or formatted_messages[-1]["content"] != message:
+        if not formatted_nested := (formatted_messages and formatted_messages[-1]["content"] == message):
             formatted_messages.append({"role": "user", "content": message})
 
         reply_text = call_gemini(formatted_messages)
