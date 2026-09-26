@@ -1,60 +1,41 @@
 from flask import Flask, request, jsonify, render_template_string
-import urllib.request
-import json
+from google import genai
+import os
 
 app = Flask(__name__)
 
 # =========================
 # Google Gemini Configuration
 # =========================
-# تم وضع المفتاح الجديد الذي يبدأ بـ AQ. مباشرة هنا
 API_KEY = "AQ.Ab8RN6Ih8epqPPHUzq6UV5IqRBd-jf2y8V5w_nvrMSRXDytA"
 
-# استخدام موديل gemini-1.5-flash المتوافق مع المفاتيح الحديثة
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+# تهيئة العميل باستخدام مكتبة جوجل الرسمية الحديثة
+client = genai.Client(api_key=API_KEY)
 
 def call_gemini(messages):
-    contents = []
-    
-    # 1. إعطاء تعليمات أساسية للنظام لتوثيق الملكية باسمك
-    system_instruction = (
-        "أنت مساعد ذكاء اصطناعي اسمه Tito AI. "
-        "تم تطويرك وبرمجتك بواسطة المطور طارق عبدالله الوائلي، وهو المالك الحصري وصاحب الملكية الفكرية للمشروع. "
-        "إذا سألك أي شخص عن من صممك أو برمجك أو من يمتلكك، يجب أن تجيب بكل فخر أن مطورك ومالكك هو طارق عبدالله الوائلي."
-    )
-    
-    contents.append({
-        "role": "user",
-        "parts": [{"text": system_instruction}]
-    })
-    contents.append({
-        "role": "model",
-        "parts": [{"text": "أهلاً بك! أنا Tito AI، مساعد ذكاء اصطناعي فخور بأنني تم تطويري وبرمجتي بواسطة المطور طارق عبدالله الوائلي."}]
-    })
-
-    for msg in messages:
-        role = "user" if msg["role"] == "user" else "model"
-        contents.append({
-            "role": role,
-            "parts": [{"text": msg["content"]}]
-        })
-    
-    headers = {
-        "Content-Type": "application/json"
-    }
-    data = {"contents": contents}
-    
-    req = urllib.request.Request(
-        GEMINI_URL,
-        data=json.dumps(data).encode('utf-8'),
-        headers=headers,
-        method='POST'
-    )
-    
     try:
-        with urllib.request.urlopen(req) as response:
-            res_data = json.loads(response.read().decode('utf-8'))
-            return res_data['candidates'][0]['content']['parts'][0]['text']
+        system_instruction = (
+            "أنت مساعد ذكاء اصطناعي اسمه Tito AI. "
+            "تم تطويرك وبرمجتك بواسطة المطور طارق عبدالله الوائلي، وهو المالك الحصري وصاحب الملكية الفكرية للمشروع. "
+            "إذا سألك أي شخص عن من صممك أو برمجك أو من يمتلكك، يجب أن تجيب بكل فخر أن مطورك ومالكك هو طارق عبدالله الوائلي."
+        )
+
+        contents = []
+        for msg in messages:
+            role = "user" if msg["role"] == "user" else "model"
+            contents.append({
+                "role": role,
+                "parts": [{"text": msg["content"]}]
+            })
+
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=contents,
+            config={
+                'system_instruction': system_instruction,
+            }
+        )
+        return response.text
     except Exception as e:
         return f"❌ خطأ من Gemini: {str(e)}"
 
