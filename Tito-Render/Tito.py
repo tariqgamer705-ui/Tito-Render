@@ -433,8 +433,10 @@ def chat_message():
                     "content": item.get("text")
                 })
         
-        if not formatted_nested := (formatted_messages and formatted_messages[-1]["content"] == message):
-            formatted_messages.append({"role": "user", "content": message})
+        # التأكد من عدم تكرار آخر رسالة مرسلة
+        if not formatted_messages or formatted_messages[-1]["content"] != message:
+            if message:
+                formatted_messages.append({"role": "user", "content": message})
 
         reply_text = call_gemini(formatted_messages)
         return jsonify({"reply": reply_text})
