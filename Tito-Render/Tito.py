@@ -7,10 +7,7 @@ app = Flask(__name__)
 # =========================
 # Google Gemini Configuration
 # =========================
-# مفتاحك السحابي الموجود في الصورة
 API_KEY = "AQ.Ab8RN6Ih8epqPPHUqzv6UV5lQRBd-jf2y8V5w_nvrMSRXDytA"
-
-# الرابط المخصص للاتصال بمفتاح Google Cloud Auth
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
 def call_gemini(messages):
@@ -36,7 +33,6 @@ def call_gemini(messages):
             }
         }
 
-        # إرسال المفتاح عبر الـ Headers بطريقة Bearer/OAuth التي يتطلبها هذا المفتاح بالذات
         req = urllib.request.Request(
             GEMINI_URL,
             data=json.dumps(payload).encode("utf-8"),
@@ -424,7 +420,7 @@ def chat_message():
         for item in history:
             if item.get("text"):
                 formatted_messages.append({
-                    "role": "user" if item.get("type"] == "user" else "model",
+                    "role": "user" if item.get("type") == "user" else "model",
                     "content": item.get("text")
                 })
         
