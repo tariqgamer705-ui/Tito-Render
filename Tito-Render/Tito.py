@@ -7,11 +7,11 @@ app = Flask(__name__)
 # =========================
 # Google Gemini Configuration
 # =========================
-# مفتاحك المباشر الذي يبدأ بـ AQ.
-API_KEY = "AQ.Ab8RN6Ih8epqPPHUqzv6rUV5IqRBd-jF2y8V5w_nvrMSrXDytA"
+# مفتاحك الجديد المحدث
+API_KEY = "AQ.Ab8RN6Jsa_MvsegVHWQKTkDgbiZmxZizlnHUrfthQAfCZv7KUg"
 
-# الرابط الرسمي المدعوم مباشرة للمفاتيح الحديثة
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+# الرابط الرسمي بدون الحاجة لإضافة المفتاح في الرابط
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
 def call_gemini(messages):
     try:
@@ -40,8 +40,10 @@ def call_gemini(messages):
                 "parts": [{"text": msg["content"]}]
             })
         
+        # استخدام الـ Header الجديد المناسب لمفاتيح الـ AQ الحديثة
         headers = {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "x-goog-api-key": API_KEY
         }
         data = {"contents": contents}
         
