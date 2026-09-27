@@ -1,15 +1,13 @@
 from flask import Flask, request, jsonify, render_template_string
 from google import genai
-import os
 
 app = Flask(__name__)
 
 # =========================
 # Google Gemini Configuration
 # =========================
-# تفعيل مفتاحك الجديد مباشرة عبر مكتبة جوجل الرسمية
-os.environ["GEMINI_API_KEY"] = "AQ.Ab8RN6Jsa_MvsegVHWQKTkDgbiZmxZizlnHUrfthQAfCZv7KUg"
-client = genai.Client()
+# تمرير المفتاح بشكل مباشر وصريح داخل العميل
+client = genai.Client(api_key="AQ.Ab8RN6Jsa_MvsegVHWQKTkDgbiZmxZizlnHUrfthQAfCZv7KUg")
 
 def call_gemini(messages):
     try:
