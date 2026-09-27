@@ -1,14 +1,16 @@
 from flask import Flask, request, jsonify, render_template_string
-import urllib.request
-import json
+from google import genai
+import os
 
 app = Flask(__name__)
 
 # =========================
 # Google Gemini Configuration
 # =========================
-API_KEY = "AQ.Ab8RN6Ih8epqPPHUqzv6UV5lQRBd-jf2y8V5w_nvrMSRXDytA"
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+API_KEY = "AQ.Ab8RN6IO9UfhWoLAS0JdyTFQELbu2y_pjUzefpHS4-fB1MfVTw"
+
+# تهيئة عميل جوجل بالطريقة الرسمية التي تتوافق مع مفتاحك
+client = genai.Client(api_key=API_KEY)
 
 def call_gemini(messages):
     try:
@@ -18,43 +20,29 @@ def call_gemini(messages):
             "إذا سألك أي شخص عن من صممك أو برمجك أو من يمتلكك، يجب أن تجيب بكل فخر أن مطورك ومالكك هو طارق عبدالله الوائلي."
         )
 
+        # تحويل الرسائل لتتوافق مع هيكلة العميل الرسمي
         contents = []
         for msg in messages:
-            role = "user" if msg["role"] == "user" else "model"
             contents.append({
-                "role": role,
+                "role": msg["role"],
                 "parts": [{"text": msg["content"]}]
             })
 
-        payload = {
-            "contents": contents,
-            "system_instruction": {
-                "parts": [{"text": system_instruction}]
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=contents,
+            config={
+                "system_instruction": system_instruction,
             }
-        }
-
-        req = urllib.request.Request(
-            GEMINI_URL,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {API_KEY}"
-            },
-            method="POST"
         )
-
-        with urllib.request.urlopen(req) as response:
-            res_data = json.loads(response.read().decode("utf-8"))
-            try:
-                return res_data["candidates"][0]["content"]["parts"][0]["text"]
-            except Exception:
-                return "❌ رد غير متوقع من نموذج Gemini"
+        
+        return response.text
 
     except Exception as e:
         return f"❌ خطأ من Gemini: {str(e)}"
 
 # =========================
-# واجهة Tito AI
+# واجهة Tito AI (نفس الواجهة السابقة تماماً)
 # =========================
 HTML = r"""
 <!DOCTYPE html>
