@@ -1,62 +1,42 @@
 from flask import Flask, request, jsonify, render_template_string
-import urllib.request
-import json
+from google import genai
+import os
 
 app = Flask(__name__)
 
 # =========================
 # Google Gemini Configuration
 # =========================
-# مفتاحك الجديد المحدث
-API_KEY = "AQ.Ab8RN6Jsa_MvsegVHWQKTkDgbiZmxZizlnHUrfthQAfCZv7KUg"
-
-# الرابط الرسمي بدون الحاجة لإضافة المفتاح في الرابط
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+# تفعيل مفتاحك الجديد مباشرة عبر مكتبة جوجل الرسمية
+os.environ["GEMINI_API_KEY"] = "AQ.Ab8RN6Jsa_MvsegVHWQKTkDgbiZmxZizlnHUrfthQAfCZv7KUg"
+client = genai.Client()
 
 def call_gemini(messages):
     try:
-        contents = []
-        
         # تعليمات النظام لتوثيق الملكية باسمك يا طارق
         system_instruction = (
             "أنت مساعد ذكاء اصطناعي اسمه Tito AI. "
             "تم تطويرك وبرمجتك بواسطة المطور طارق عبدالله الوائلي، وهو المالك الحصري وصاحب الملكية الفكرية للمشروع. "
             "إذا سألك أي شخص عن من صممك أو برمجك أو من يمتلكك، يجب أن تجيب بكل فخر أن مطورك ومالكك هو طارق عبدالله الوائلي."
         )
-        
-        contents.append({
-            "role": "user",
-            "parts": [{"text": system_instruction}]
-        })
-        contents.append({
-            "role": "model",
-            "parts": [{"text": "أهلاً بك! أنا Tito AI، مساعد ذكاء اصطناعي فخور بأنني تم تطويري وبرمجتي بواسطة المطور طارق عبدالله الوائلي."}]
-        })
 
+        # تجهيز السجل والمحادثة للنموذج
+        formatted_contents = []
         for msg in messages:
             role = "user" if msg["role"] == "user" else "model"
-            contents.append({
+            formatted_contents.append({
                 "role": role,
                 "parts": [{"text": msg["content"]}]
             })
-        
-        # استخدام الـ Header الجديد المناسب لمفاتيح الـ AQ الحديثة
-        headers = {
-            "Content-Type": "application/json",
-            "x-goog-api-key": API_KEY
-        }
-        data = {"contents": contents}
-        
-        req = urllib.request.Request(
-            GEMINI_URL,
-            data=json.dumps(data).encode('utf-8'),
-            headers=headers,
-            method='POST'
+
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=formatted_contents,
+            config={
+                'system_instruction': system_instruction
+            }
         )
-        
-        with urllib.request.urlopen(req) as response:
-            res_data = json.loads(response.read().decode('utf-8'))
-            return res_data['candidates'][0]['content']['parts'][0]['text']
+        return response.text
     except Exception as e:
         return f"❌ خطأ من Gemini: {str(e)}"
 
