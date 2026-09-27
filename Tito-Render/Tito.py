@@ -10,7 +10,7 @@ app = Flask(__name__)
 # =========================
 
 client = genai.Client(api_key="AQ.Ab8RN6IQJSAshu12vtf3PQFBUzeISdvEUUZNlqD6sjsq9zEhIw")
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.5-flash"
 
 # =========================
 # واجهة Tito AI
