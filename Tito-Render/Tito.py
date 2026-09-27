@@ -1,56 +1,72 @@
 from flask import Flask, request, jsonify, render_template_string
-from google import genai
+import urllib.request
+import json
 
 app = Flask(__name__)
 
 # =========================
 # Google Gemini Configuration
 # =========================
-# تمرير المفتاح بشكل مباشر وصريح داخل العميل
-client = genai.Client(api_key="AQ.Ab8RN6Jsa_MvsegVHWQKTkDgbiZmxZizlnHUrfthQAfCZv7KUg")
+# مفتاحك السحابي الموجود في الصورة
+API_KEY = "AQ.Ab8RN6Ih8epqPPHUqzv6UV5lQRBd-jf2y8V5w_nvrMSRXDytA"
+
+# الرابط المخصص للاتصال بمفتاح Google Cloud Auth
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
 def call_gemini(messages):
     try:
-        # تعليمات النظام لتوثيق الملكية باسمك يا طارق
         system_instruction = (
             "أنت مساعد ذكاء اصطناعي اسمه Tito AI. "
             "تم تطويرك وبرمجتك بواسطة المطور طارق عبدالله الوائلي، وهو المالك الحصري وصاحب الملكية الفكرية للمشروع. "
             "إذا سألك أي شخص عن من صممك أو برمجك أو من يمتلكك، يجب أن تجيب بكل فخر أن مطورك ومالكك هو طارق عبدالله الوائلي."
         )
 
-        # تجهيز السجل والمحادثة للنموذج
-        formatted_contents = []
+        contents = []
         for msg in messages:
             role = "user" if msg["role"] == "user" else "model"
-            formatted_contents.append({
+            contents.append({
                 "role": role,
                 "parts": [{"text": msg["content"]}]
             })
 
-        response = client.models.generate_content(
-            model='gemini-1.5-flash',
-            contents=formatted_contents,
-            config={
-                'system_instruction': system_instruction
+        payload = {
+            "contents": contents,
+            "system_instruction": {
+                "parts": [{"text": system_instruction}]
             }
+        }
+
+        # إرسال المفتاح عبر الـ Headers بطريقة Bearer/OAuth التي يتطلبها هذا المفتاح بالذات
+        req = urllib.request.Request(
+            GEMINI_URL,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {API_KEY}"
+            },
+            method="POST"
         )
-        return response.text
+
+        with urllib.request.urlopen(req) as response:
+            res_data = json.loads(response.read().decode("utf-8"))
+            try:
+                return res_data["candidates"][0]["content"]["parts"][0]["text"]
+            except Exception:
+                return "❌ رد غير متوقع من نموذج Gemini"
+
     except Exception as e:
         return f"❌ خطأ من Gemini: {str(e)}"
 
 # =========================
 # واجهة Tito AI
 # =========================
-
 HTML = r"""
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Tito AI</title>
-
 <style>
 * { box-sizing: border-box; }
 body { margin: 0; font-family: Arial, sans-serif; background: #101010; color: white; overflow: hidden; }
@@ -116,7 +132,6 @@ textarea { flex: 1; resize: none; border: none; outline: none; background: trans
 }
 </style>
 </head>
-
 <body>
 <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
 <div id="sidebar" class="sidebar hidden">
@@ -409,11 +424,10 @@ def chat_message():
         for item in history:
             if item.get("text"):
                 formatted_messages.append({
-                    "role": "user" if item.get("type") == "user" else "model",
+                    "role": "user" if item.get("type"] == "user" else "model",
                     "content": item.get("text")
                 })
         
-        # التأكد من عدم تكرار آخر رسالة مرسلة
         if not formatted_messages or formatted_messages[-1]["content"] != message:
             if message:
                 formatted_messages.append({"role": "user", "content": message})
