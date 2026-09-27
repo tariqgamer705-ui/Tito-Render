@@ -1,137 +1,391 @@
+import base64
 from flask import Flask, request, jsonify, render_template_string
 from google import genai
-import os
+from google.genai import types
 
 app = Flask(__name__)
 
 # =========================
-# Google Gemini Configuration
+# Gemini Client & Model Configuration
 # =========================
-API_KEY = "AQ.Ab8RN6IO9UfhWoLAS0JdyTFQELbu2y_pjUzefpHS4-fB1MfVTw"
 
-# تهيئة عميل جوجل بالطريقة الرسمية التي تتوافق مع مفتاحك
-client = genai.Client(api_key=API_KEY)
-
-def call_gemini(messages):
-    try:
-        system_instruction = (
-            "أنت مساعد ذكاء اصطناعي اسمه Tito AI. "
-            "تم تطويرك وبرمجتك بواسطة المطور طارق عبدالله الوائلي، وهو المالك الحصري وصاحب الملكية الفكرية للمشروع. "
-            "إذا سألك أي شخص عن من صممك أو برمجك أو من يمتلكك، يجب أن تجيب بكل فخر أن مطورك ومالكك هو طارق عبدالله الوائلي."
-        )
-
-        # تحويل الرسائل لتتوافق مع هيكلة العميل الرسمي
-        contents = []
-        for msg in messages:
-            contents.append({
-                "role": msg["role"],
-                "parts": [{"text": msg["content"]}]
-            })
-
-        response = client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=contents,
-            config={
-                "system_instruction": system_instruction,
-            }
-        )
-        
-        return response.text
-
-    except Exception as e:
-        return f"❌ خطأ من Gemini: {str(e)}"
+client = genai.Client(api_key="AQ.Ab8RN6IQJSAshu12vtf3PQFBUzeISdvEUUZNlqD6sjsq9zEhIw")
+MODEL = "gemini-2.5-flash"
 
 # =========================
-# واجهة Tito AI (نفس الواجهة السابقة تماماً)
+# واجهة Tito AI
 # =========================
+
 HTML = r"""
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
 <meta charset="UTF-8">
+<meta name="google-site-verification" content="MmR0XF7E1_-Eci7A0VnABqMkCqNd0zpf5c-5JlR1rx0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="description" content="Tito AI - مساعد ذكاء اصطناعي عربي">
 <title>Tito AI</title>
+
 <style>
-* { box-sizing: border-box; }
-body { margin: 0; font-family: Arial, sans-serif; background: #101010; color: white; overflow: hidden; }
-.sidebar { position: fixed; right: 0; top: 0; width: 280px; height: 100vh; background: #181818; border-left: 1px solid #303030; padding: 18px; transition: transform 0.25s ease; z-index: 100; display: flex; flex-direction: column; }
-.sidebar.hidden { transform: translateX(100%); }
-.logo { font-size: 24px; font-weight: bold; margin-bottom: 25px; }
-.new-chat { width: 100%; padding: 13px; border: none; border-radius: 12px; background: #303030; color: white; cursor: pointer; font-size: 15px; margin-bottom: 20px; }
-.new-chat:hover { background: #3a3a3a; }
-.history-title { color: #999; font-size: 13px; margin-bottom: 10px; }
-.history { overflow-y: auto; flex: 1; }
-.copyright-footer { font-size: 11px; color: #777; text-align: center; padding-top: 15px; border-top: 1px solid #282828; margin-top: 10px; line-height: 1.5; }
-.topic { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; cursor: pointer; margin-bottom: 5px; transition: background 0.2s; }
-.topic:hover { background: #292929; }
-.topic.active { background: #303030; }
-.topic-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; font-size: 14px; }
-.topic-menu-btn { background: transparent; border: none; color: #aaa; cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px; display: none; }
-.topic:hover .topic-menu-btn, .topic-menu-btn.show { display: block; }
-.topic-dropdown { display: none; position: absolute; left: 10px; top: 40px; background: #252525; border: 1px solid #383838; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 150px; z-index: 200; overflow: hidden; }
-.topic-dropdown.show { display: block; }
-.dropdown-item { padding: 10px 14px; font-size: 13px; color: white; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-.dropdown-item:hover { background: #333333; }
-.dropdown-item.delete { color: #ff4d4d; }
-.overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 90; }
-.overlay.show { display: block; }
-.main { height: 100vh; margin-right: 280px; display: flex; flex-direction: column; transition: margin-right 0.25s ease; }
-.main.full { margin-right: 0; }
-.header { height: 65px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid #292929; }
-.menu { background: transparent; color: white; border: none; font-size: 24px; cursor: pointer; }
-.header-title { font-size: 20px; font-weight: bold; }
-.chat { flex: 1; overflow-y: auto; padding: 35px; max-width: 950px; width: 100%; margin: auto; }
-.welcome { text-align: center; margin-top: 120px; }
-.welcome h1 { font-size: 42px; margin-bottom: 10px; }
-.welcome p { color: #999; font-size: 17px; }
-.message { display: flex; margin: 22px 0; flex-direction: column; }
-.message.user { align-items: flex-start; }
-.message.tito { align-items: flex-end; }
-.bubble { max-width: 75%; padding: 15px 18px; border-radius: 18px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
-.user .bubble { background: #303030; }
-.tito .bubble { background: #202020; }
-.chat-media { max-width: 300px; max-height: 250px; border-radius: 12px; margin-bottom: 8px; }
-.input-area { width: 100%; padding: 18px; background: #101010; position: relative; }
-.input-container { max-width: 850px; margin: auto; position: relative; }
-.attachment-preview { display: none; align-items: center; background: #252525; padding: 8px 12px; border-radius: 12px 12px 0 0; border: 1px solid #353535; border-bottom: none; }
-.attachment-preview img, .attachment-preview video { height: 50px; border-radius: 6px; margin-left: 10px; }
-.remove-attach { background: #ff4d4d; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; margin-right: auto; font-weight: bold; }
-.input-box { background: #202020; border: 1px solid #353535; border-radius: 22px; display: flex; align-items: center; padding: 5px 10px; }
-.plus-btn { background: transparent; border: none; color: #ccc; font-size: 26px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-textarea { flex: 1; resize: none; border: none; outline: none; background: transparent; color: white; font-size: 16px; padding: 10px; max-height: 150px; font-family: Arial; }
-.action-btn { width: 40px; height: 40px; border: none; border-radius: 50%; background: white; color: black; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.action-btn.listening { background: #ff4d4d; color: white; animation: pulse 1.5s infinite; }
-@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-.upload-menu { display: none; position: absolute; bottom: 60px; right: 0; background: #252525; border: 1px solid #383838; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 200px; z-index: 500; overflow: hidden; }
-.upload-menu.show { display: block; }
-.menu-item { display: flex; align-items: center; padding: 12px 16px; cursor: pointer; color: white; font-size: 15px; gap: 12px; }
-.menu-item:hover { background: #333333; }
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #101010;
+    color: white;
+    overflow: hidden;
+}
+
+/* ========================= القائمة الجانبية ========================= */
+.sidebar {
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 280px;
+    height: 100vh;
+    background: #181818;
+    border-left: 1px solid #303030;
+    padding: 18px;
+    transition: transform 0.25s ease;
+    z-index: 100;
+}
+
+.sidebar.hidden {
+    transform: translateX(100%);
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 25px;
+}
+
+.new-chat {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 12px;
+    background: #303030;
+    color: white;
+    cursor: pointer;
+    font-size: 15px;
+    margin-bottom: 20px;
+}
+
+.new-chat:hover {
+    background: #3a3a3a;
+}
+
+.history-title {
+    color: #999;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.history {
+    overflow-y: auto;
+    height: calc(100vh - 160px);
+}
+
+.topic {
+    padding: 11px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.topic:hover {
+    background: #292929;
+}
+
+.topic.active {
+    background: #303030;
+}
+
+.overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.5);
+    z-index: 90;
+}
+
+.overlay.show {
+    display: block;
+}
+
+/* ========================= الصفحة الرئيسية ========================= */
+.main {
+    height: 100vh;
+    margin-right: 280px;
+    display: flex;
+    flex-direction: column;
+    transition: margin-right 0.25s ease;
+}
+
+.main.full {
+    margin-right: 0;
+}
+
+.header {
+    height: 65px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    border-bottom: 1px solid #292929;
+}
+
+.menu {
+    background: transparent;
+    color: white;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.header-title {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* ========================= المحادثة ========================= */
+.chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 35px;
+    max-width: 950px;
+    width: 100%;
+    margin: auto;
+}
+
+.welcome {
+    text-align: center;
+    margin-top: 120px;
+}
+
+.welcome h1 {
+    font-size: 42px;
+    margin-bottom: 10px;
+}
+
+.welcome p {
+    color: #999;
+    font-size: 17px;
+}
+
+.message {
+    display: flex;
+    margin: 22px 0;
+    flex-direction: column;
+}
+
+.message.user {
+    align-items: flex-start;
+}
+
+.message.tito {
+    align-items: flex-end;
+}
+
+.bubble {
+    max-width: 75%;
+    padding: 15px 18px;
+    border-radius: 18px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.user .bubble {
+    background: #303030;
+}
+
+.tito .bubble {
+    background: #202020;
+}
+
+.chat-media {
+    max-width: 300px;
+    max-height: 250px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+/* ========================= منطقة الكتابة والقائمة ========================= */
+.input-area {
+    width: 100%;
+    padding: 18px;
+    background: #101010;
+    position: relative;
+}
+
+.input-container {
+    max-width: 850px;
+    margin: auto;
+    position: relative;
+}
+
+.attachment-preview {
+    display: none;
+    align-items: center;
+    background: #252525;
+    padding: 8px 12px;
+    border-radius: 12px 12px 0 0;
+    border: 1px solid #353535;
+    border-bottom: none;
+}
+
+.attachment-preview img, .attachment-preview video {
+    height: 50px;
+    border-radius: 6px;
+    margin-left: 10px;
+}
+
+.remove-attach {
+    background: #ff4d4d;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    margin-right: auto;
+    font-weight: bold;
+}
+
+.input-box {
+    background: #202020;
+    border: 1px solid #353535;
+    border-radius: 22px;
+    display: flex;
+    align-items: center;
+    padding: 5px 10px;
+}
+
+.plus-btn {
+    background: transparent;
+    border: none;
+    color: #ccc;
+    font-size: 26px;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.plus-btn:hover {
+    background: #303030;
+    color: white;
+}
+
+textarea {
+    flex: 1;
+    resize: none;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: white;
+    font-size: 16px;
+    padding: 10px;
+    max-height: 150px;
+    font-family: Arial;
+}
+
+.send {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: white;
+    color: black;
+    cursor: pointer;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.send:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* القائمة المنسدلة عند إتاحة الضغط على + */
+.upload-menu {
+    display: none;
+    position: absolute;
+    bottom: 60px;
+    right: 0;
+    background: #252525;
+    border: 1px solid #383838;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    width: 200px;
+    z-index: 500;
+    overflow: hidden;
+}
+
+.upload-menu.show {
+    display: block;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    color: white;
+    font-size: 15px;
+    gap: 12px;
+    transition: background 0.2s;
+}
+
+.menu-item:hover {
+    background: #333333;
+}
+
 @media (max-width: 768px) {
     .sidebar { width: 260px; transform: translateX(100%); }
     .sidebar.show-mobile { transform: translateX(0); }
     .main { margin-right: 0 !important; }
     .chat { padding: 15px; }
     .bubble { max-width: 88%; font-size: 15px; padding: 12px 15px; }
+    .welcome { margin-top: 60px; }
+    .welcome h1 { font-size: 28px; }
+    .welcome p { font-size: 15px; }
+    .input-area { padding: 10px; }
+    .header { height: 55px; padding: 0 15px; }
+    .header-title { font-size: 17px; }
 }
 </style>
 </head>
+
 <body>
+
 <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+
+<!-- القائمة الجانبية -->
 <div id="sidebar" class="sidebar hidden">
-    <div>
-        <div class="logo">🤖 Tito AI</div>
-        <button class="new-chat" onclick="newChat()">＋ محادثة جديدة</button>
-        <div class="history-title">المواضيع السابقة</div>
-    </div>
+    <div class="logo">🤖 Tito AI</div>
+    <button class="new-chat" onclick="newChat()">＋ محادثة جديدة</button>
+    <div class="history-title">المواضيع السابقة</div>
     <div id="history" class="history"></div>
-    <div class="copyright-footer">
-        © 2026 Tito AI<br>
-        جميع الحقوق محفوظة<br>
-        <b>طارق عبدالله الوائلي</b>
-    </div>
 </div>
 
+<!-- الواجهة الرئيسية -->
 <div id="main" class="main full">
     <div class="header">
         <button class="menu" onclick="toggleSidebar()">☰</button>
@@ -148,21 +402,34 @@ textarea { flex: 1; resize: none; border: none; outline: none; background: trans
 
     <div class="input-area">
         <div class="input-container">
+            
+            <!-- قائمة الخيارات عند الضغط على + -->
             <div id="uploadMenu" class="upload-menu">
-                <div class="menu-item" onclick="triggerFileSelect('image/*')">📷 إضافة صورة</div>
-                <div class="menu-item" onclick="triggerFileSelect('video/*')">🎥 إضافة مقطع فيديو</div>
+                <div class="menu-item" onclick="triggerFileSelect('image/*')">
+                    📷 إضافة صورة
+                </div>
+                <div class="menu-item" onclick="triggerFileSelect('video/*')">
+                    🎥 إضافة مقطع فيديو
+                </div>
             </div>
+
+            <!-- المعاينة الخاصة بالمرفق قبل الإرسال -->
             <div id="attachmentPreview" class="attachment-preview">
                 <span id="previewContainer"></span>
                 <span id="fileName" style="font-size: 14px; color: #ccc;"></span>
                 <button class="remove-attach" onclick="clearAttachment()">✕</button>
             </div>
+
+            <!-- مربع إدخال النص والأزرار -->
             <div class="input-box">
                 <button class="plus-btn" onclick="toggleUploadMenu(event)">＋</button>
-                <textarea id="message" rows="1" placeholder="اكتب رسالتك إلى Tito..." oninput="handleInput()" onkeydown="handleKey(event)"></textarea>
-                <button id="actionButton" class="action-btn" onclick="handleActionClick()" title="تسجيل صوتي أو إرسال">🎤</button>
+                <textarea id="message" rows="1" placeholder="اكتب رسالتك إلى Tito..." onkeydown="handleKey(event)"></textarea>
+                <button id="sendButton" class="send" onclick="sendMessage()">↑</button>
             </div>
+
+            <!-- مدخل الملفات المخفي -->
             <input type="file" id="fileInput" style="display: none;" onchange="handleFileSelected(event)">
+
         </div>
     </div>
 </div>
@@ -170,64 +437,31 @@ textarea { flex: 1; resize: none; border: none; outline: none; background: trans
 <script>
 let conversations = JSON.parse(localStorage.getItem("tito_conversations") || "[]");
 let currentId = null;
-let currentAttachment = null;
-let recognition = null;
-let isListening = false;
-
-if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SpeechRecognition();
-    recognition.lang = 'ar-SA';
-    recognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript;
-        const input = document.getElementById("message");
-        input.value += (input.value ? " " : "") + transcript;
-        handleInput();
-    };
-    recognition.onerror = function() { stopListening(); };
-    recognition.onend = function() { stopListening(); };
-}
-
-function startListening() {
-    if (!recognition) { alert("متصفحك لا يدعم خاصية التعرف الصوتي."); return; }
-    try { recognition.start(); isListening = true; document.getElementById("actionButton").classList.add("listening"); } catch(e) { stopListening(); }
-}
-
-function stopListening() {
-    if (recognition && isListening) { try { recognition.stop(); } catch(e){} }
-    isListening = false;
-    document.getElementById("actionButton").classList.remove("listening");
-}
-
-function handleInput() {
-    const input = document.getElementById("message");
-    const btn = document.getElementById("actionButton");
-    if (input.value.trim().length > 0 || currentAttachment) {
-        if (isListening) stopListening();
-        btn.textContent = "↑";
-    } else {
-        btn.textContent = "🎤";
-    }
-}
-
-function handleActionClick() {
-    const input = document.getElementById("message");
-    if (input.value.trim().length > 0 || currentAttachment) { sendMessage(); }
-    else { if (isListening) stopListening(); else startListening(); }
-}
+let currentAttachment = null; // { data: base64, mimeType: string, url: string, type: 'image'|'video' }
 
 function toggleSidebar() {
     const sidebar = document.getElementById("sidebar");
     const main = document.getElementById("main");
     const overlay = document.getElementById("overlay");
-    if (window.innerWidth <= 768) { sidebar.classList.toggle("show-mobile"); overlay.classList.toggle("show"); }
-    else { sidebar.classList.toggle("hidden"); main.classList.toggle("full"); }
+
+    if (window.innerWidth <= 768) {
+        sidebar.classList.toggle("show-mobile");
+        overlay.classList.toggle("show");
+    } else {
+        sidebar.classList.toggle("hidden");
+        main.classList.toggle("full");
+    }
 }
 
 function newChat() {
     currentId = null;
     clearAttachment();
-    document.getElementById("chat").innerHTML = `<div id="welcome" class="welcome"><h1>مرحبًا، أنا Tito 🤖</h1><p>كيف أقدر أساعدك اليوم؟</p></div>`;
+    document.getElementById("chat").innerHTML = `
+        <div id="welcome" class="welcome">
+            <h1>مرحبًا، أنا Tito 🤖</h1>
+            <p>كيف أقدر أساعدك اليوم؟</p>
+        </div>
+    `;
     document.getElementById("headerTitle").textContent = "Tito AI";
     document.getElementById("message").focus();
     if (window.innerWidth <= 768) toggleSidebar();
@@ -236,85 +470,94 @@ function newChat() {
 
 function createConversation(firstMessage) {
     const id = Date.now().toString();
-    const conversation = { id: id, title: firstMessage.substring(0, 35) || "محادثة جديدة", pinned: false, messages: [] };
+    const conversation = {
+        id: id,
+        title: firstMessage.substring(0, 35) || "محادثة جديدة",
+        messages: []
+    };
     conversations.unshift(conversation);
     currentId = id;
     saveConversations();
     return conversation;
 }
 
-function saveConversations() { localStorage.setItem("tito_conversations", JSON.stringify(conversations)); }
+function saveConversations() {
+    localStorage.setItem("tito_conversations", JSON.stringify(conversations));
+}
 
 function renderHistory() {
     const history = document.getElementById("history");
     history.innerHTML = "";
-    [...conversations].sort((a, b) => (a.pinned === b.pinned ? 0 : (a.pinned ? -1 : 1))).forEach(function(conversation) {
+    conversations.forEach(function(conversation) {
         const div = document.createElement("div");
-        div.className = "topic" + (conversation.id === currentId ? " active" : "");
-        div.innerHTML = `<span class="topic-title">${conversation.pinned ? "📌 " : "💬 "}${conversation.title}</span><button class="topic-menu-btn" onclick="toggleTopicMenu('${conversation.id}', event)">⋮</button><div id="dropdown-${conversation.id}" class="topic-dropdown"><div class="dropdown-item" onclick="togglePin('${conversation.id}', event)">${conversation.pinned ? '📍 إلغاء التثبيت' : '📌 تثبيت'}</div><div class="dropdown-item" onclick="renameConversation('${conversation.id}', event)">✏️ إعادة تسمية</div><div class="dropdown-item delete" onclick="deleteConversation('${conversation.id}', event)">🗑️ حذف</div></div>`;
-        div.onclick = function() { loadConversation(conversation.id); if (window.innerWidth <= 768) toggleSidebar(); };
+        div.className = "topic";
+        if (conversation.id === currentId) div.classList.add("active");
+        div.textContent = "💬 " + conversation.title;
+        div.onclick = function() {
+            loadConversation(conversation.id);
+            if (window.innerWidth <= 768) toggleSidebar();
+        };
         history.appendChild(div);
     });
 }
 
-function toggleTopicMenu(id, e) {
-    e.stopPropagation();
-    document.querySelectorAll('.topic-dropdown').forEach(m => { if (m.id !== `dropdown-${id}`) m.classList.remove('show'); });
-    document.getElementById(`dropdown-${id}`).classList.toggle("show");
-}
-
-document.addEventListener("click", function() {
-    document.querySelectorAll('.topic-dropdown').forEach(m => m.classList.remove('show'));
-    document.getElementById("uploadMenu").classList.remove("show");
-});
-
-function togglePin(id, e) {
-    e.stopPropagation();
-    const c = conversations.find(x => x.id === id);
-    if (c) { c.pinned = !c.pinned; saveConversations(); renderHistory(); }
-}
-
-function renameConversation(id, e) {
-    e.stopPropagation();
-    const c = conversations.find(x => x.id === id);
-    if (c) {
-        const nt = prompt("أدخل العنوان الجديد للمحادثة:", c.title);
-        if (nt && nt.trim()) { c.title = nt.trim(); saveConversations(); renderHistory(); if (currentId === id) document.getElementById("headerTitle").textContent = c.title; }
-    }
-}
-
-function deleteConversation(id, e) {
-    e.stopPropagation();
-    if (confirm("هل أنت متأكد من رغبتك في حذف هذه المحادثة؟")) {
-        conversations = conversations.filter(x => x.id !== id);
-        saveConversations();
-        if (currentId === id) newChat(); else renderHistory();
-    }
-}
-
 function loadConversation(id) {
-    const c = conversations.find(x => x.id === id);
-    if (!c) return;
+    const conversation = conversations.find(c => c.id === id);
+    if (!conversation) return;
     currentId = id;
-    document.getElementById("chat").innerHTML = "";
-    document.getElementById("headerTitle").textContent = c.title;
-    c.messages.forEach(m => addMessage(m.text, m.type, false, m.media));
+    const chat = document.getElementById("chat");
+    chat.innerHTML = "";
+    document.getElementById("headerTitle").textContent = conversation.title;
+    conversation.messages.forEach(function(message) {
+        addMessage(message.text, message.type, false, message.media);
+    });
     renderHistory();
 }
 
-function toggleUploadMenu(e) { e.stopPropagation(); document.getElementById("uploadMenu").classList.toggle("show"); }
-function triggerFileSelect(type) { document.getElementById("fileInput").accept = type; document.getElementById("fileInput").click(); document.getElementById("uploadMenu").classList.remove("show"); }
+function toggleUploadMenu(e) {
+    e.stopPropagation();
+    const menu = document.getElementById("uploadMenu");
+    menu.classList.toggle("show");
+}
+
+document.addEventListener("click", function() {
+    document.getElementById("uploadMenu").classList.remove("show");
+});
+
+function triggerFileSelect(acceptType) {
+    const input = document.getElementById("fileInput");
+    input.accept = acceptType;
+    input.click();
+    document.getElementById("uploadMenu").classList.remove("show");
+}
 
 function handleFileSelected(e) {
     const file = e.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = function(event) {
-        currentAttachment = { data: event.target.result.split(',')[1], mimeType: file.type, url: URL.createObjectURL(file), type: file.type.startsWith("image/") ? "image" : "video" };
-        document.getElementById("previewContainer").innerHTML = currentAttachment.type === "image" ? `<img src="${currentAttachment.url}">` : `<video src="${currentAttachment.url}" muted></video>`;
+        const base64Data = event.target.result.split(',')[1];
+        const isImage = file.type.startsWith("image/");
+        const isVideo = file.type.startsWith("video/");
+
+        currentAttachment = {
+            data: base64Data,
+            mimeType: file.type,
+            url: URL.createObjectURL(file),
+            type: isImage ? "image" : (isVideo ? "video" : "file")
+        };
+
+        // إظهار المعاينة
+        const previewContainer = document.getElementById("previewContainer");
+        if (isImage) {
+            previewContainer.innerHTML = `<img src="${currentAttachment.url}">`;
+        } else if (isVideo) {
+            previewContainer.innerHTML = `<video src="${currentAttachment.url}" muted></video>`;
+        }
+
         document.getElementById("fileName").textContent = file.name;
         document.getElementById("attachmentPreview").style.display = "flex";
-        handleInput();
     };
     reader.readAsDataURL(file);
 }
@@ -325,101 +568,196 @@ function clearAttachment() {
     document.getElementById("previewContainer").innerHTML = "";
     document.getElementById("fileName").textContent = "";
     document.getElementById("fileInput").value = "";
-    handleInput();
 }
 
 function addMessage(text, type, save = true, media = null) {
     const chat = document.getElementById("chat");
     const welcome = document.getElementById("welcome");
     if (welcome) welcome.remove();
-    const msg = document.createElement("div");
-    msg.className = "message " + type;
+
+    const message = document.createElement("div");
+    message.className = "message " + type;
+
+    // إضافة الوسائط إذا وجد صوره أو فيديو
     if (media) {
-        const el = document.createElement(media.type === "image" ? "img" : "video");
-        el.src = media.url || `data:${media.mimeType};base64,${media.data}`;
-        if (media.type === "video") el.controls = true;
-        el.className = "chat-media";
-        msg.appendChild(el);
+        if (media.type === "image") {
+            const img = document.createElement("img");
+            img.src = media.url || `data:${media.mimeType};base64,${media.data}`;
+            img.className = "chat-media";
+            message.appendChild(img);
+        } else if (media.type === "video") {
+            const video = document.createElement("video");
+            video.src = media.url || `data:${media.mimeType};base64,${media.data}`;
+            video.controls = true;
+            video.className = "chat-media";
+            message.appendChild(video);
+        }
     }
+
     if (text) {
         const bubble = document.createElement("div");
         bubble.className = "bubble";
         bubble.textContent = text;
-        msg.appendChild(bubble);
+        message.appendChild(bubble);
     }
-    chat.appendChild(msg);
+
+    chat.appendChild(message);
     chat.scrollTop = chat.scrollHeight;
+
     if (save && currentId) {
-        conversations.find(x => x.id === currentId).messages.push({ text: text, type: type, media: media });
-        saveConversations();
+        const conversation = conversations.find(c => c.id === currentId);
+        if (conversation) {
+            conversation.messages.push({
+                text: text,
+                type: type,
+                media: media
+            });
+            saveConversations();
+        }
     }
-    return msg;
+
+    return message;
 }
 
 async function sendMessage() {
     const input = document.getElementById("message");
+    const button = document.getElementById("sendButton");
     const text = input.value.trim();
+
     if (!text && !currentAttachment) return;
-    if (isListening) stopListening();
-    if (!currentId) { createConversation(text || "ملف مرفق"); document.getElementById("headerTitle").textContent = (text || "ملف مرفق").substring(0, 35); }
+
+    if (!currentId) {
+        createConversation(text || "ملف مرفق");
+        document.getElementById("headerTitle").textContent = (text || "ملف مرفق").substring(0, 35);
+    }
+
     const mediaToSend = currentAttachment;
+    
+    // إضافة رسالة المستخدم للمحادثة
     addMessage(text, "user", true, mediaToSend);
+
+    // مسح الحقول
     input.value = "";
     clearAttachment();
-    const c = conversations.find(x => x.id === currentId);
-    const loading = addMessage("Tito يكتب... 🤔", "tito", false);
+    button.disabled = true;
+
+    const conversation = conversations.find(c => c.id === currentId);
+
+    // إضافة مؤشر "Tito يكتب..."
+    const loadingMessage = addMessage("Tito يكتب... 🤔", "tito", false);
+    const loadingBubble = loadingMessage.querySelector(".bubble");
+
     try {
-        const res = await fetch("/chat", {
+        const response = await fetch("/chat", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: text, history: c.messages })
+            body: JSON.stringify({
+                message: text,
+                attachment: mediaToSend ? {
+                    data: mediaToSend.data,
+                    mimeType: mediaToSend.mimeType
+                } : null,
+                history: conversation.messages
+            })
         });
-        const data = await res.json();
-        loading.querySelector(".bubble").textContent = data.reply;
-        c.messages.push({ text: data.reply, type: "tito" });
+
+        const data = await response.json();
+        loadingBubble.textContent = data.reply;
+
+        // حفظ رد Tito
+        conversation.messages.push({
+            text: data.reply,
+            type: "tito"
+        });
+
         saveConversations();
         renderHistory();
-    } catch(e) {
-        loading.querySelector(".bubble").textContent = "❌ حصل خطأ في الاتصال";
+
+    } catch (error) {
+        loadingBubble.textContent = "❌ حصل خطأ في الاتصال بـ Tito";
     }
+
+    button.disabled = false;
     input.focus();
-    handleInput();
 }
 
-function handleKey(e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function handleKey(event) {
+    if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+    }
+}
+
 renderHistory();
 </script>
+
 </body>
 </html>
 """
+
+# =========================
+# الرئيسية
+# =========================
 
 @app.route("/")
 def home():
     return render_template_string(HTML)
 
+# =========================
+# مسار المحادثة مع Gemini
+# =========================
+
 @app.route("/chat", methods=["POST"])
 def chat_message():
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({"reply": "❌ لم يتم إرسال بيانات"})
+
         message = data.get("message", "").strip()
+        attachment = data.get("attachment")
         history = data.get("history", [])
 
-        formatted_messages = []
-        for item in history:
-            if item.get("text"):
-                formatted_messages.append({
-                    "role": "user" if item.get("type") == "user" else "model",
-                    "content": item.get("text")
-                })
-        
-        if not formatted_messages or formatted_messages[-1]["content"] != message:
-            if message:
-                formatted_messages.append({"role": "user", "content": message})
+        if not message and not attachment:
+            return jsonify({"reply": "❌ اكتب رسالة أو أرفق ملفًا أولًا"})
 
-        reply_text = call_gemini(formatted_messages)
-        return jsonify({"reply": reply_text})
+        # تجهيز أجزاء طلب المعالجة
+        contents = []
+
+        # إدراج المرفق الحالي (صورة أو فيديو) مع الطلب
+        if attachment and "data" in attachment and "mimeType" in attachment:
+            raw_bytes = base64.b64decode(attachment["data"])
+            part = types.Part.from_bytes(data=raw_bytes, mime_type=attachment["mimeType"])
+            contents.append(part)
+
+        # بناء نص الحوار والتعليمات
+        prompt_text = "أنت Tito AI، مساعد ذكاء اصطناعي عربي ودود ومفيد جداً.\n\n"
+        if history:
+            prompt_text += "سجل المحادثة السابقة:\n"
+            for item in history[:-1]:  # التجاوز عن آخر رسالة أضيفت توًا
+                msg_type = item.get("type", "")
+                txt = item.get("text", "")
+                if txt:
+                    prompt_text += f"{'المستخدم' if msg_type == 'user' else 'Tito'}: {txt}\n"
+
+        prompt_text += f"\nالمستخدم الآن: {message if message else '[قام المرفق بإرساله]'}\nTito:"
+        contents.append(prompt_text)
+
+        # إرسال إلى نموذج Gemini 2.5 Flash المتوافق مع الوسائط
+        response = client.models.generate_content(
+            model=MODEL,
+            contents=contents
+        )
+
+        return jsonify({"reply": response.text})
+
     except Exception as e:
-        return jsonify({"reply": f"❌ خطأ: {str(e)}"})
+        print("Gemini Error:", repr(e))
+        return jsonify({"reply": f"❌ حصل خطأ أثناء الاتصال بـ Gemini: {str(e)}"})
+
+# =========================
+# التشغيل
+# =========================
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False)
